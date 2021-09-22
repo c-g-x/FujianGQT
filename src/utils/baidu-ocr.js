@@ -46,7 +46,7 @@ const BaiduOCR = {
 
         let result = "";
         const {data: respData} = await axios.post(url, qs.stringify(data), config);
-        return respData['words_result'][0].words;
+        return respData['words_result']?.[0]?.words || '';
     }
 }
 export {BaiduOCR};
