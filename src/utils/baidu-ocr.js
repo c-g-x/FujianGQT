@@ -1,15 +1,19 @@
 import axios from 'axios';
 import qs from 'qs';
+import {getOcrConfig} from './config-loading.js'
 
-// axios.defaults.proxy = {
-//     host: '127.0.0.1',
-//     port: '8889',
-// }
+axios.defaults.proxy = {
+    host: '127.0.0.1',
+    port: '8889',
+}
+axios.defaults.withCredentials = true;
+
+const BAIDU_OCR_CONFIG = await getOcrConfig();
 
 const BaiduOCR = {
     grantType: 'client_credentials',
-    publicKey: 'aj3j5Rb1gOSdj6VfyDLUrNgg',
-    secretKey: 'OjrvyR57kI0LrcdskVX6s2FOgKh2sdGo',
+    publicKey: BAIDU_OCR_CONFIG['public-key'],
+    secretKey: BAIDU_OCR_CONFIG['secret-key'],
 
     async getAccessToken() {
         const url = 'https://aip.baidubce.com/oauth/2.0/token';

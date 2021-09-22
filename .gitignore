@@ -25,4 +25,4 @@ yarn-error.log*
 # secret files
 config.json
 test
-*/incomplete.png
+/assets/images/incomplete.png

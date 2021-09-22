@@ -1,0 +1,26 @@
+{
+  "baidu-ocr": {
+    "public-key": "公钥",
+    "secret-key": "密钥"
+  },
+  "secretaries": [
+    {
+      "username": "支书1账号（用于生成青年大学习未完成名单截图）",
+      "password": "支书1密码"
+    },
+    {
+      "username": "支书2账号（支持多个支书账号生成多张截图）",
+      "password": "支书2密码"
+    }
+  ],
+  "members": [
+    {
+      "username": "成员1账号（用于自动做青年大学习）",
+      "password": "成员1密码"
+    },
+    {
+      "username": "成员2账号（支持多个成员完成青年大学习）",
+      "password": "成员2密码"
+    }
+  ]
+}
