@@ -9,6 +9,7 @@
   },
   "author": "GuixinChan",
   "license": "ISC",
+  "type": "module",
   "devDependencies": {
     "axios": "^0.21.4",
     "fs": "^0.0.1-security",
@@ -16,7 +17,6 @@
     "lodash": "^4.17.21",
     "qs": "^6.10.1"
   },
-  "type": "module",
   "dependencies": {
     "gm": "^1.23.1"
   }

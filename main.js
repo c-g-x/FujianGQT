@@ -1,14 +1,27 @@
 import axios from 'axios';
 import {Buffer} from 'buffer';
 import {BaiduOCR} from './src/utils/baidu-ocr.js';
-import {RSAEncrypt} from './src/utils/utils.js';
 import qs from 'qs'
 import _ from 'lodash';
 import gm from 'gm';
-import {getSecretaries, getMembers} from './src/utils/config-loading.js'
+import {getMembers, getSecretaries} from './src/utils/config-loading.js'
+import Hex from "./src/encrypt/hex.js";
+import SM4 from "./src/encrypt/sm4.js";
 
-let secretaries = await getSecretaries();
-let members = await getMembers();
+const secretaries = await getSecretaries();
+const members = await getMembers();
+
+/*
+ * 测试ecb sm4加密
+ */
+function ecbEnc(str) {
+    const keyRec = "A7E74D2B6282AEB1C5EA3C28D25660A7";
+    const inputBytes = Hex.utf8StrToBytes(str);
+    const key = Hex.decode(keyRec);
+    const sm4 = new SM4();
+    const cipher = sm4.encrypt_ecb(key, inputBytes);
+    return Hex.encode(cipher, 0, cipher?.length);
+}
 
 /**
  * 获取 Cookies 字符串和验证码字符串
@@ -32,10 +45,10 @@ async function getCookiesAndValidationCode() {
     let img = 'data:image/jpg;base64,' + data.toString('base64');
 
     const validateCode = await BaiduOCR.getWords(img);
-    await console.log(`validateCode: ${validateCode}`);
+    // await console.log(`validateCode: ${validateCode}`);
     let validationCode = await validateCode;
     let cookies = await resp.headers['set-cookie'][0].match(/(JSESSIONID=.*); .*/)[1];
-    console.log(cookies);
+    // console.log(cookies);
     return {cookies, validationCode};
 }
 
@@ -81,17 +94,18 @@ async function autoLearning(member) {
 
     const url = 'https://m.fjcyl.com/mobileNologin';
     const data = {
-        'userName': RSAEncrypt(member.username),
-        'pwd': RSAEncrypt(member.password),
-        'validateCode': RSAEncrypt(validationCode),
+        'userName': ecbEnc(member.username),
+        'pwd': ecbEnc(member.password),
+        'validateCode': ecbEnc(validationCode),
     }
     axios.post(url, qs.stringify(data), getDefaultAxiosConfig(cookies)).then((resp) => { // 做大学习
         if (resp?.data?.success !== true) {
-            return console.log(`${member.username} 登录失败`);
+            console.log(`${member.name} 登录失败|response: ${JSON.stringify(resp.data)}`);
+            return false;
         }
 
         axios.post('https://m.fjcyl.com/studyRecord', null, getDefaultAxiosConfig(cookies)).then((resp) => {
-            console.log(`${member.username} 学习${resp.data['success'] ? '成功' : '失败'}`);
+            console.log(`${member.name} 学习${resp.data['success'] ? '成功' : '失败'}`);
         });
     });
 }
@@ -105,13 +119,13 @@ function getIncompleteMembers(secretary) {
     getCookiesAndValidationCode().then(object => {
         const url = 'https://m.fjcyl.com/mobileNologin';
         const data = {
-            'userName': RSAEncrypt(secretary.username),
-            'pwd': RSAEncrypt(secretary.password),
-            'validateCode': RSAEncrypt(object.validationCode),
+            'userName': ecbEnc(secretary.username),
+            'pwd': ecbEnc(secretary.password),
+            'validateCode': ecbEnc(object.validationCode),
         }
         axios.post(url, qs.stringify(data), getDefaultAxiosConfig(object.cookies)).then((resp) => { // 做大学习
             if (resp?.data?.success !== true) {
-                console.log(`${secretary.username} 登录失败`);
+                console.log(`${secretary.username} 登录失败 response: ${resp}`);
                 return false;
             }
 
@@ -182,10 +196,10 @@ function getIncompleteMembers(secretary) {
     })
 }
 
-for (const secretary of secretaries) {
-    autoLearning(secretary);
-}
+// for (const secretary of secretaries) {
+//     getIncompleteMembers(secretary);
+// }
 
 for (const member of members) {
-    getIncompleteMembers(member);
+    autoLearning(member);
 }

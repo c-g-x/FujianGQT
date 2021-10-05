@@ -1,4 +1,4 @@
-import {RsaArr} from './wx_rsa.js';
+import {RsaArr} from '../encrypt/wx_rsa.js';
 
 /**
  * 接收一个字符串并根据 PUBLIC KEY 对齐进行加密

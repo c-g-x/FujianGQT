@@ -23,6 +23,6 @@ yarn-error.log*
 *.sw?
 
 # secret files
-config.json
+config_fjgqt/config.json
 test
 /assets/images/incomplete.png
