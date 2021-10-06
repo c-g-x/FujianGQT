@@ -1,12 +1,6 @@
-import axios from 'axios';
+import axios from '../request/axios-fjgqt.js';
 import qs from 'qs';
 import {getOcrConfig} from './config-loading.js'
-
-axios.defaults.proxy = {
-    host: '127.0.0.1',
-    port: '8889',
-}
-axios.defaults.withCredentials = true;
 
 const BAIDU_OCR_CONFIG = await getOcrConfig();
 
@@ -49,4 +43,4 @@ const BaiduOCR = {
         return respData['words_result']?.[0]?.words || '';
     }
 }
-export {BaiduOCR};
+export default BaiduOCR;

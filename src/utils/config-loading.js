@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 
-const CONFIG_FILE_NAME = './config_fjgqt/config.json';
+const CONFIG_FILE_NAME = '../config_fjgqt/config.json';
 
 let file = await fs.readFile(CONFIG_FILE_NAME, 'utf-8');
 let json = JSON.parse(file);

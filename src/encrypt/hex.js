@@ -2,9 +2,9 @@ function Hex() {
 
 }
 
-Hex.encode = function (b, pos, len) {
-    var hexCh = new Array(len * 2);
-    var hexCode = new Array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+Hex.prototype.encode = function (b, pos, len) {
+    const hexCh = new Array(len * 2);
+    const hexCode = new Array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 
     for (var i = pos, j = 0; i < len + pos; i++, j++) {
         hexCh[j] = hexCode[(b[i] & 0xFF) >> 4];
@@ -14,7 +14,7 @@ Hex.encode = function (b, pos, len) {
     return hexCh.join('');
 }
 
-Hex.decode = function (hex) {
+Hex.prototype.decode = function (hex) {
 
     if (hex == null || hex == '') {
         return null;
@@ -55,7 +55,7 @@ Hex.decode = function (hex) {
     return asc;
 }
 
-Hex.utf8StrToHex = function (utf8Str) {
+Hex.prototype.utf8StrToHex = function (utf8Str) {
     var ens = encodeURIComponent(utf8Str);
     var es = unescape(ens);
 
@@ -70,7 +70,7 @@ Hex.utf8StrToHex = function (utf8Str) {
     return words.join('');
 }
 
-Hex.utf8StrToBytes = function (utf8Str) {
+Hex.prototype.utf8StrToBytes = function (utf8Str) {
     var ens = encodeURIComponent(utf8Str);
     var es = unescape(ens);
 
@@ -85,7 +85,7 @@ Hex.utf8StrToBytes = function (utf8Str) {
     return words;
 }
 
-Hex.hexToUtf8Str = function (utf8Str) {
+Hex.prototype.hexToUtf8Str = function (utf8Str) {
 
     var utf8Byte = Hex.decode(utf8Str);
     var latin1Chars = [];
@@ -95,7 +95,7 @@ Hex.hexToUtf8Str = function (utf8Str) {
     return decodeURIComponent(escape(latin1Chars.join('')));
 }
 
-Hex.bytesToUtf8Str = function (bytesArray) {
+Hex.prototype.bytesToUtf8Str = function (bytesArray) {
 
     var utf8Byte = bytesArray;
     var latin1Chars = [];
@@ -105,7 +105,7 @@ Hex.bytesToUtf8Str = function (bytesArray) {
     return decodeURIComponent(escape(latin1Chars.join('')));
 }
 
-Hex.toCharCodeArray = function (chs) {
+Hex.prototype.toCharCodeArray = function (chs) {
     var chArr = new Array(chs.length);
     for (var i = 0; i < chs.length; i++) {
         chArr[i] = chs.charCodeAt(i);
