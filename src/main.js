@@ -107,20 +107,17 @@ function generateImage(data) {
   });
 }
 
- function sendEmail(subject, text) {
+function sendEmail(subject, text) {
   let transporter = nodemailer.createTransport({
     service: email.service,
-     // port: 465,
-   // secure: false,
-   auth: {
-       user: email.auth.user,  pass: email.auth.pass,},
-        });
-   return transporter
-   .sendMail({from: email.from,
-       to: email.from,
-       subject: subject,
-       text: text,
-     });
+    // port: 465,
+    // secure: false,
+    auth: {
+      user: email.auth.user,
+      pass: email.auth.pass,
+    },
+  });
+  return transporter.sendMail({ from: email.from, to: email.from, subject: subject, text: text });
 }
 
 /**
@@ -181,14 +178,14 @@ function getIncompleteMembers(secretary) {
                     .then(async (resp) => {
                       const groups = _.groupBy(resp.data?.['rs']?.['rs'], (o) => o['isStudy'] === '否');
                       const data = {
-                        '未完成名单': _.map(groups['true'], 'acctName'),
-                        '已完成名单': _.map(groups['false'], 'acctName'),
+                        未完成名单: _.map(groups['true'], 'acctName'),
+                        已完成名单: _.map(groups['false'], 'acctName'),
                       };
 
                       // generateImage(data);
 
                       console.log(JSON.stringify(data, null, 2));
-                      await sendEmail("青年大学习完成情况", JSON.stringify(data, null, 2));
+                      await sendEmail('青年大学习完成情况', JSON.stringify(data, null, 2));
                     });
                 }
               });
@@ -204,11 +201,11 @@ function getIncompleteMembers(secretary) {
   for (const member of members) {
     setTimeout(async () => {
       await autoLearning(member);
-    }, i * 2 * 1000)
+    }, i * 2 * 1000);
     ++i;
   }
 
-  setTimeout(()=>{
+  setTimeout(() => {
     for (const secretary of secretaries) {
       getIncompleteMembers(secretary);
     }
