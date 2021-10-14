@@ -16,3 +16,7 @@ export async function getSecretaries() {
 export async function getMembers() {
     return json['members'];
 }
+
+export async function getEmailConfigurations() {
+  return json['email'];
+}

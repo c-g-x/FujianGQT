@@ -5,19 +5,32 @@
   "main": "src/main.js",
   "scripts": {
     "start": "node --experimental-specifier-resolution=node src/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install",
+    "pretty-quick": "pretty-quick",
+    "husky": {
+      "hooks": {
+        "pre-commit": "pretty-quick --staged"
+      }
+    }
   },
   "author": "GuixinChan",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
     "axios": "^0.21.4",
+    "eslint": "^8.0.1",
+    "eslint-plugin-prettier": "^4.0.0",
     "fs": "^0.0.1-security",
-    "koa": "^2.13.1",
-    "lodash": "^4.17.21",
-    "qs": "^6.10.1"
+    "husky": "^7.0.0",
+    "prettier": "^2.4.1",
+    "pretty-quick": "^3.1.1"
   },
   "dependencies": {
-    "gm": "^1.23.1"
+    "gm": "^1.23.1",
+    "koa": "^2.13.3",
+    "lodash": "^4.17.21",
+    "nodemailer": "^6.7.0",
+    "qs": "^6.10.1"
   }
 }
