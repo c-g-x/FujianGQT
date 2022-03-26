@@ -63,7 +63,7 @@ async function autoLearning(member, tryCount = 1) {
   const validationCode = cookiesAndValidationCode.validationCode.trim();
 
   if (_.isEmpty(validationCode)) {
-    return autoLearning(member, tryCount + 1);
+    return await autoLearning(member, tryCount + 1);
   }
   const url = 'https://m.fjcyl.com/mobileNologin';
 
@@ -73,17 +73,16 @@ async function autoLearning(member, tryCount = 1) {
     validateCode: ecbEnc(validationCode),
   };
 
-  axios.post(url, qs.stringify(data), { headers: { Cookie: cookies } }).then((resp) => {
-    // 做大学习
-    if (resp?.data?.success !== true) {
-      console.log(`${member.name} 登录失败|response: ${JSON.stringify(resp.data)}`);
-      return autoLearning(member, tryCount + 1);
-    }
+  const loginResponse = await axios.post(url, qs.stringify(data), { headers: { Cookie: cookies } });
+  // 做大学习
+  if (loginResponse?.data?.success !== true) {
+    console.log(`${member.name} 登录失败|response: ${JSON.stringify(loginResponse.data)}`);
+    return await autoLearning(member, tryCount + 1);
+  }
 
-    axios.post('https://m.fjcyl.com/studyRecord', null, { headers: { Cookie: cookies } }).then((resp) => {
-      console.log(`${member.name} 学习${resp.data['success'] ? '成功' : '失败'}`);
-    });
-  });
+  const studyRecordResponse = await axios.post('https://m.fjcyl.com/studyRecord', null, { headers: { Cookie: cookies } });
+  console.log(`${member.name} 学习${studyRecordResponse.data['success'] ? '成功' : '失败'}`);
+  return studyRecordResponse.data['success'];
 }
 
 function generateImage(data) {
@@ -118,7 +117,7 @@ function sendEmail(subject, text) {
       pass: email.auth.pass,
     },
   });
-  return transporter.sendMail({ from: email.from, to: email.from, subject: subject, text: text });
+  return transporter.sendMail({ from: email.from, to: email.to, subject: subject, text: text });
 }
 
 /**
