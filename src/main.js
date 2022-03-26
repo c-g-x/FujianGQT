@@ -8,6 +8,7 @@ import { getEmailConfigurations, getMembers, getSecretaries } from './utils/conf
 import Hex from './encrypt/hex.js';
 import SM4 from './encrypt/sm4.js';
 import nodemailer from 'nodemailer';
+import { sleep } from './utils/utils.js';
 
 const secretaries = await getSecretaries();
 const members = await getMembers();
@@ -50,10 +51,10 @@ async function getCookiesAndValidationCode() {
 /**
  * 自动学习青年大学习
  *
- * @param member
+ * @param member{object} 成员对象
+ * @param tryCount{number} 尝试次数
  */
-async function autoLearning(member, tryCount) {
-  tryCount = tryCount || 1;
+async function autoLearning(member, tryCount = 1) {
   if (tryCount >= 10) {
     return;
   }
@@ -124,90 +125,87 @@ function sendEmail(subject, text) {
  * 获取未完成青年大学习的团员名单
  *
  * @param secretary 团支部书记信息
+ * @param isGenerateImage{boolean} 是否生成图片
  */
-function getIncompleteMembers(secretary) {
-  getCookiesAndValidationCode().then((object) => {
-    const url = 'https://m.fjcyl.com/mobileNologin';
-    const data = {
-      userName: ecbEnc(secretary.username),
-      pwd: ecbEnc(secretary.password),
-      validateCode: ecbEnc(object.validationCode),
-    };
-    axios.post(url, qs.stringify(data), { headers: { Cookie: object.cookies } }).then((resp) => {
-      // 做大学习
-      if (resp?.data?.success !== true) {
-        console.log(`${secretary.username} 登录失败 response: ${JSON.stringify(resp.data)}`);
-        return false;
-      }
+async function getIncompleteMembers(secretary, isGenerateImage = false) {
+  const CookieObject = await getCookiesAndValidationCode();
 
-      setTimeout(() => {
-        /* 获取当前最新的季度号 */
-        axios
-          .post('https://m.fjcyl.com/admin/cylOrgMembers/groupByList?groupBy=1', null, { headers: { Cookie: object.cookies } })
-          .then(async (resp) => {
-            const quarterNo = resp?.data?.['rs']?.[0]?.['quarterNo'];
+  const LOGIN_URL = 'https://m.fjcyl.com/mobileNologin';
+  const data = {
+    userName: ecbEnc(secretary.username),
+    pwd: ecbEnc(secretary.password),
+    validateCode: ecbEnc(CookieObject.validationCode),
+  };
 
-            if (!quarterNo) {
-              console.log('获取当前季度号 `quarterNo` 失败');
-              return;
-            }
+  const loginResponse = await axios.post(LOGIN_URL, qs.stringify(data), { headers: { Cookie: CookieObject.cookies } });
+  if (loginResponse?.data?.success !== true) {
+    console.log(`${secretary.username} 登录失败 response: ${JSON.stringify(loginResponse.data)}`);
+    return false;
+  }
 
-            const { data: userSession } = await axios.post('https://m.fjcyl.com/getUserSession', null, { headers: { Cookie: object.cookies } });
-            const organizationId = await userSession?.['rs']?.['currentCylOrgMember']?.['orgId'];
+  await sleep();
 
-            if (!organizationId) {
-              console.log('未成功获取个人信息中的组织号 orgId');
-              return;
-            }
-            // 获取最新一期的 group id
-            axios
-              .post(`https://m.fjcyl.com/admin/cylOrgMembers/selectList?orderBy=1&quarterNo=${quarterNo}`, null, {
-                headers: { Cookie: object.cookies },
-              })
-              .then((resp) => {
-                const groupStudyId = resp?.data?.['rs']?.[0]?.['guoupStudyId'];
-                if (groupStudyId) {
-                  // 查询学习情况列表
-                  axios
-                    .post(
-                      `https://m.fjcyl.com/admin/cylOrgMembers/selectCurrentStudy?` +
-                        `studyId=${groupStudyId}&current=&PAGE_SIZE=40&CURRENT_PAGE=1&orgId=${organizationId}`,
-                      null,
-                      { headers: { Cookie: object.cookies } }
-                    )
-                    .then(async (resp) => {
-                      const groups = _.groupBy(resp.data?.['rs']?.['rs'], (o) => o['isStudy'] === '否');
-                      const data = {
-                        未完成名单: _.map(groups['true'], 'acctName'),
-                        已完成名单: _.map(groups['false'], 'acctName'),
-                      };
-
-                      // generateImage(data);
-
-                      console.log(JSON.stringify(data, null, 2));
-                      await sendEmail('青年大学习完成情况', JSON.stringify(data, null, 2));
-                    });
-                }
-              });
-          });
-      }, 2000);
-    });
-    return true;
+  // 做大学习
+  // 获取当前最新的季度号
+  const groupListResponse = await axios.post('https://m.fjcyl.com/admin/cylOrgMembers/groupByList?groupBy=1', null, {
+    headers: { Cookie: CookieObject.cookies },
   });
+  const quarterNo = groupListResponse?.data?.['rs']?.[0]?.['quarterNo'];
+
+  if (!quarterNo) {
+    console.log('获取当前季度号 `quarterNo` 失败');
+    return false;
+  }
+
+  const { data: userSession } = await axios.post('https://m.fjcyl.com/getUserSession', null, { headers: { Cookie: CookieObject.cookies } });
+  const organizationId = await userSession?.['rs']?.['currentCylOrgMember']?.['orgId'];
+
+  if (!organizationId) {
+    console.log('未成功获取个人信息中的组织号 orgId', organizationId);
+    return false;
+  }
+  // 获取最新一期的 group id
+  const selectListResponse = await axios.post(`https://m.fjcyl.com/admin/cylOrgMembers/selectList?orderBy=1&quarterNo=${quarterNo}`, null, {
+    headers: { Cookie: CookieObject.cookies },
+  });
+  const groupStudyId = selectListResponse?.data?.['rs']?.[0]?.['guoupStudyId'];
+  if (!groupStudyId) {
+    console.log('获取groupStudyId失败');
+    return false;
+  }
+
+  // 查询学习情况列表
+
+  const groupStudyIdResponse = await axios.post(
+    `https://m.fjcyl.com/admin/cylOrgMembers/selectCurrentStudy?` +
+      `studyId=${groupStudyId}&current=&PAGE_SIZE=40&CURRENT_PAGE=1&orgId=${organizationId}`,
+    null,
+    { headers: { Cookie: CookieObject.cookies } }
+  );
+  const groups = _.groupBy(groupStudyIdResponse.data?.['rs']?.['rs'], (o) => o['isStudy'] === '否');
+  const resultGroupData = {
+    未完成名单: _.map(groups['true'], 'acctName'),
+    已完成名单: _.map(groups['false'], 'acctName'),
+  };
+
+  // 生成完成情况图片
+  if (isGenerateImage) {
+    generateImage(resultGroupData);
+  }
+
+  console.log(JSON.stringify(resultGroupData, null, 2));
+  await sendEmail('青年大学习完成情况', JSON.stringify(resultGroupData, null, 2));
+  return true;
 }
 
 (async () => {
-  let i = 0;
   for (const member of members) {
-    setTimeout(async () => {
-      await autoLearning(member);
-    }, i * 2 * 1000);
-    ++i;
+    await autoLearning(member);
+    await sleep(2000); // 防止过于频繁请求百度 OCR 接口导致限制并发数（免费账号并发数为 1）
   }
 
-  setTimeout(() => {
-    for (const secretary of secretaries) {
-      getIncompleteMembers(secretary);
-    }
-  }, 60 * 1000);
+  for (const secretary of secretaries) {
+    let success = await getIncompleteMembers(secretary);
+    console.log(`↑============================success: ${success}============================↑\n`);
+  }
 })();

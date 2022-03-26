@@ -14,3 +14,15 @@ export function RSAEncrypt(word) {
   encStr = RsaArr.hex2b64(encStr);
   return encStr;
 }
+
+export function sleep(delay = 1000) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        resolve(1);
+      } catch (e) {
+        reject(0);
+      }
+    }, delay);
+  });
+}
