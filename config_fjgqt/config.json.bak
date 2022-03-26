@@ -3,6 +3,14 @@
     "public-key": "公钥",
     "secret-key": "密钥"
   },
+  "email": {
+    "service": "QQ（也可配置其它邮箱服务）",
+    "auth": {
+      "user": "qq邮箱",
+      "pass": "qq的授权码，具体获取方式百度"
+    },
+    "to": "接收的邮箱地址"
+  },
   "secretaries": [
     {
       "username": "支书1账号（用于生成青年大学习未完成名单截图 / 完成情况列表）",
