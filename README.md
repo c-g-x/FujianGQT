@@ -10,7 +10,7 @@
 
 1. 将 /config_fjgqt/config.json.bak 的后缀 **.bak** 去掉
 2. 申请百度智能云上的免费文字识别 OCR（用于识别验证码，也可自行修改程序配置其它 OCR 接口），获取的 public-key 和 secret-key 分别填入 `config.json`
-3. 配置 `config.json` 的 email 用于发送完成情况到邮箱
+3. 配置 `config.json` 的 email 用于发送完成情况到邮箱，[QQ 邮箱授权码获取方式](https://service.mail.qq.com/cgi-bin/help?subtype=1&id=28&no=1001256])
 4. 配置 `config.json` 的 secretaries（团支书账户）账号密码，用于获取团支部青年大学习完成情况
 5. 配置 `config.json` 的 members（团支部成员账户）账号密码，用于设置批量完成青年大学习的账号
 
