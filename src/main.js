@@ -200,7 +200,7 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
 (async () => {
   for (const member of members) {
     await autoLearning(member);
-    await sleep(2000); // 防止过于频繁请求百度 OCR 接口导致限制并发数（免费账号并发数为 1）
+    await sleep(); // 防止过于频繁请求百度 OCR 接口导致限制并发数（免费账号并发数为 1）
   }
 
   for (const secretary of secretaries) {
