@@ -11,6 +11,7 @@ axios.defaults.headers = {
   withCredentials: true,
   'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
 };
+// axios.defaults.timeout = process.env.HTTP_TIMEOUT;
 // axios.defaults.proxy = {
 //     host: '127.0.0.1',
 //     port: 8889,

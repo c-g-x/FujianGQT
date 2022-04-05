@@ -1,3 +1,5 @@
+import 'dotenv/config';
+import log4js from 'log4js';
 import axios from './request/axios-fjgqt.js';
 import { Buffer } from 'buffer';
 import BaiduOCR from './utils/baidu-ocr.js';
@@ -9,11 +11,15 @@ import Hex from './encrypt/hex.js';
 import SM4 from './encrypt/sm4.js';
 import nodemailer from 'nodemailer';
 import { sleep } from './utils/utils.js';
+import { createSingleLock } from './utils/promise-lock.js';
+
+const logger = log4js.getLogger();
+logger.level = process.env.LOGGER_LEVEL;
 
 const secretaries = await getSecretaries();
 const members = await getMembers();
 const email = await getEmailConfigurations();
-
+const acquire = createSingleLock();
 /*
  * 测试ecb sm4加密
  */
@@ -37,16 +43,23 @@ async function getCookiesAndValidationCode() {
     responseType: 'arraybuffer',
   });
 
-  let data = await Buffer.from(resp.data);
+  let data = Buffer.from(resp.data);
   let img = 'data:image/jpg;base64,' + data.toString('base64');
 
-  const validateCode = await BaiduOCR.getWords(img);
-  // await console.log(`validateCode: ${validateCode}`);
-  let validationCode = await validateCode;
-  let cookies = await resp.headers['set-cookie'][0].match(/(JSESSIONID=.*); .*/)[1];
-  // console.log(cookies);
+  let cookies = resp.headers['set-cookie'][0].match(/(JSESSIONID=.*); .*/)[1];
+
+  // 一个时刻只能有一个请求百度 OCR
+  const validationCode = await acquire(async () => {
+    await sleep(500);
+    return await BaiduOCR.getWords(img);
+  });
+
+  logger.debug(`cookies: ${cookies}`);
+  logger.debug(`validate code: ${validationCode}`);
   return { cookies, validationCode };
 }
+
+const MAX_TRY_COUNT = 10;
 
 /**
  * 自动学习青年大学习
@@ -55,8 +68,8 @@ async function getCookiesAndValidationCode() {
  * @param tryCount{number} 尝试次数
  */
 async function autoLearning(member, tryCount = 1) {
-  if (tryCount >= 10) {
-    return;
+  if (tryCount >= MAX_TRY_COUNT) {
+    return logger.error(`${member.name ?? member.username}登录失败，已超过最大尝试次数${MAX_TRY_COUNT}`);
   }
   const cookiesAndValidationCode = await getCookiesAndValidationCode();
   const cookies = cookiesAndValidationCode.cookies;
@@ -73,16 +86,22 @@ async function autoLearning(member, tryCount = 1) {
     validateCode: ecbEnc(validationCode),
   };
 
-  const loginResponse = await axios.post(url, qs.stringify(data), { headers: { Cookie: cookies } });
-  // 做大学习
-  if (loginResponse?.data?.success !== true) {
-    console.log(`${member.name} 登录失败|response: ${JSON.stringify(loginResponse.data)}`);
+  try {
+    const loginResponse = await axios.post(url, qs.stringify(data), { headers: { Cookie: cookies } });
+    // 做大学习
+    if (loginResponse?.data?.success !== true) {
+      logger.debug(`${member.name} 登录失败|response: ${JSON.stringify(loginResponse.data)}`);
+      return await autoLearning(member, tryCount + 1);
+    }
+
+    const studyRecordResponse = await axios.post('https://m.fjcyl.com/studyRecord', null, { headers: { Cookie: cookies } });
+    const isSuccess = studyRecordResponse.data['success'];
+    logger.info(`${member.name} 学习${isSuccess ? '成功' : '失败'}`);
+    return isSuccess || (await autoLearning(member, tryCount + 1));
+  } catch (e) {
+    logger.debug('登录失败', JSON.stringify(e, null, 2));
     return await autoLearning(member, tryCount + 1);
   }
-
-  const studyRecordResponse = await axios.post('https://m.fjcyl.com/studyRecord', null, { headers: { Cookie: cookies } });
-  console.log(`${member.name} 学习${studyRecordResponse.data['success'] ? '成功' : '失败'}`);
-  return studyRecordResponse.data['success'];
 }
 
 function generateImage(data) {
@@ -100,9 +119,9 @@ function generateImage(data) {
   }
   incompleteImage.write('./assets/images/incomplete.png', (err) => {
     if (!err) {
-      console.log('生成青年大学习完成情况图');
+      logger.debug('生成青年大学习完成情况图');
     } else {
-      console.log(err.message || '青年大学习完成情况图生成失败');
+      logger.debug(err.message || '青年大学习完成情况图生成失败');
     }
   });
 }
@@ -138,7 +157,7 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
 
   const loginResponse = await axios.post(LOGIN_URL, qs.stringify(data), { headers: { Cookie: CookieObject.cookies } });
   if (loginResponse?.data?.success !== true) {
-    console.log(`${secretary.username} 登录失败 response: ${JSON.stringify(loginResponse.data)}`);
+    logger.error(`${secretary.username} 登录失败 response: ${JSON.stringify(loginResponse.data)}`);
     return false;
   }
 
@@ -152,7 +171,7 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
   const quarterNo = groupListResponse?.data?.['rs']?.[0]?.['quarterNo'];
 
   if (!quarterNo) {
-    console.log('获取当前季度号 `quarterNo` 失败');
+    logger.error('获取当前季度号 `quarterNo` 失败');
     return false;
   }
 
@@ -160,7 +179,7 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
   const organizationId = await userSession?.['rs']?.['currentCylOrgMember']?.['orgId'];
 
   if (!organizationId) {
-    console.log('未成功获取个人信息中的组织号 orgId', organizationId);
+    logger.error('未成功获取个人信息中的组织号 orgId', organizationId);
     return false;
   }
   // 获取最新一期的 group id
@@ -169,7 +188,7 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
   });
   const groupStudyId = selectListResponse?.data?.['rs']?.[0]?.['guoupStudyId'];
   if (!groupStudyId) {
-    console.log('获取groupStudyId失败');
+    logger.error('获取groupStudyId失败');
     return false;
   }
 
@@ -192,19 +211,16 @@ async function getIncompleteMembers(secretary, isGenerateImage = false) {
     generateImage(resultGroupData);
   }
 
-  console.log(JSON.stringify(resultGroupData, null, 2));
+  logger.debug(JSON.stringify(resultGroupData));
   await sendEmail('青年大学习完成情况', JSON.stringify(resultGroupData, null, 2));
   return true;
 }
 
 (async () => {
-  for (const member of members) {
-    await autoLearning(member);
-    await sleep(); // 防止过于频繁请求百度 OCR 接口导致限制并发数（免费账号并发数为 1）
-  }
+  await Promise.all(members.map((member) => autoLearning(member)));
 
   for (const secretary of secretaries) {
     let success = await getIncompleteMembers(secretary);
-    console.log(`↑============================success: ${success}============================↑\n`);
+    logger.debug(`↑============================success: ${success}============================↑\n`);
   }
 })();
